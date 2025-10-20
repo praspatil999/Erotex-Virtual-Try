@@ -1,107 +1,70 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Heart, ShoppingCart, Filter, X } from "lucide-react";
+import axios from "axios"; // Import axios
 
 const ShopPage = () => {
+  // State for filters remains the same
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [showFilters, setShowFilters] = useState(false);
-  const [priceRange, setPriceRange] = useState([0, 1000]);
+  const [priceRange, setPriceRange] = useState([0, 300]); // Adjusted max price
 
-  const categories = [
-    "All",
-    "Women",
-    "Men",
-    "Accessories",
-    "New Arrivals",
-    "Sale",
-  ];
+  // --- 1. REMOVE HARDCODED PRODUCTS AND ADD NEW STATE ---
+  // const products = [ ... ]; // This is now gone.
 
-  const products = [
-    {
-      id: 1,
-      name: "Summer Floral Dress",
-      price: 89.99,
-      originalPrice: 129.99,
-      category: "Women",
-      image:
-        "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=400&q=80",
-      tag: "Sale",
-    },
-    {
-      id: 2,
-      name: "Classic Denim Jacket",
-      price: 119.99,
-      category: "Women",
-      image:
-        "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=400&q=80",
-      tag: "New",
-    },
-    {
-      id: 3,
-      name: "Elegant White Shirt",
-      price: 59.99,
-      category: "Men",
-      image:
-        "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=400&q=80",
-      tag: "",
-    },
-    {
-      id: 4,
-      name: "Leather Handbag",
-      price: 149.99,
-      category: "Accessories",
-      image:
-        "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=400&q=80",
-      tag: "",
-    },
-    {
-      id: 5,
-      name: "Casual Sneakers",
-      price: 79.99,
-      originalPrice: 99.99,
-      category: "Accessories",
-      image:
-        "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=400&q=80",
-      tag: "Sale",
-    },
-    {
-      id: 6,
-      name: "Slim Fit Blazer",
-      price: 199.99,
-      category: "Men",
-      image:
-        "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=400&q=80",
-      tag: "New",
-    },
-    {
-      id: 7,
-      name: "Bohemian Maxi Dress",
-      price: 94.99,
-      category: "Women",
-      image:
-        "https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=400&q=80",
-      tag: "",
-    },
-    {
-      id: 8,
-      name: "Designer Sunglasses",
-      price: 129.99,
-      category: "Accessories",
-      image:
-        "https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&w=400&q=80",
-      tag: "New",
-    },
-  ];
+  const [allProducts, setAllProducts] = useState([]); // Holds all products from the DB
+  const [loading, setLoading] = useState(true); // To show a loading message
+  const [error, setError] = useState(null); // To show an error message
 
-  const filteredProducts = products.filter(
+  // --- 2. FETCH PRODUCTS FROM YOUR API WHEN THE PAGE LOADS ---
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        // This is the GET request to your backend
+        const response = await axios.get("http://localhost:5000/api/products");
+        setAllProducts(response.data); // Store the fetched products in state
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+        setError("Could not load products. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []); // The empty array [] ensures this runs only once.
+
+  // --- 3. DYNAMICALLY CREATE CATEGORIES FROM FETCHED PRODUCTS ---
+  // This creates a unique list of categories from your product data
+  const categories = ["All", ...new Set(allProducts.map((p) => p.category))];
+
+  // --- 4. UPDATE FILTERING LOGIC TO USE `allProducts` STATE ---
+  const filteredProducts = allProducts.filter(
     (product) =>
       (selectedCategory === "All" || product.category === selectedCategory) &&
       product.price >= priceRange[0] &&
       product.price <= priceRange[1]
   );
 
+  // --- 5. RENDER LOADING OR ERROR MESSAGES ---
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-neutral-900 text-white">
+        <p className="text-2xl">Loading products...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-neutral-900 text-red-500">
+        <p className="text-2xl">{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-neutral-900 scroll-smooth">
-      
       {/* HERO BANNER */}
       <section className="bg-gradient-to-r from-pink-600 to-pink-500 py-16 px-6 ">
         <div className="container mx-auto text-center max-w-4xl pt-24">
@@ -114,11 +77,13 @@ const ShopPage = () => {
         </div>
       </section>
 
-      <div className="container mx-auto px-6 py-12 -z-40">
+      <div className="container mx-auto px-6 py-12">
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* SIDEBAR FILTERS */}
+          {/* SIDEBAR FILTERS (This part remains mostly the same) */}
           <aside
-            className={`lg:w-64 ${showFilters ? "block" : "hidden lg:block"}`}
+            className={`lg:w-64 ${
+              showFilters ? "block" : "hidden lg:block"
+            }`}
           >
             <div className="bg-neutral-800 rounded-2xl p-6 border border-neutral-700 sticky top-24">
               <div className="flex items-center justify-between mb-6">
@@ -162,7 +127,7 @@ const ShopPage = () => {
                   <input
                     type="range"
                     min="0"
-                    max="1000"
+                    max="300" // Adjusted max price
                     value={priceRange[1]}
                     onChange={(e) =>
                       setPriceRange([0, parseInt(e.target.value)])
@@ -175,11 +140,6 @@ const ShopPage = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Reset Button */}
-              <button className="w-full py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg text-sm font-medium transition-colors">
-                Reset Filters
-              </button>
             </div>
           </aside>
 
@@ -201,51 +161,24 @@ const ShopPage = () => {
               <h2 className="text-2xl font-bold text-white">
                 {filteredProducts.length} Products
               </h2>
-              <select className="px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-pink-500">
-                <option>Sort by: Featured</option>
-                <option>Price: Low to High</option>
-                <option>Price: High to Low</option>
-                <option>Newest</option>
-              </select>
+              {/* Sort dropdown can be implemented later */}
             </div>
 
-            {/* Products Grid */}
+            {/* Products Grid - Now uses data from your database! */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 ">
               {filteredProducts.map((product) => (
                 <div
-                  key={product.id}
+                  key={product._id} // Use the unique ID from MongoDB
                   className="group bg-neutral-800 rounded-2xl overflow-hidden border border-neutral-700 hover:border-pink-500/50 transition-all duration-300"
                 >
-                  {/* Product Image */}
-                  <div className=" aspect-[3/4] overflow-hidden bg-neutral-700">
+                  <div className="relative aspect-[3/4] overflow-hidden bg-neutral-700">
                     <img
                       src={product.image}
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
-                    {product.tag && (
-                      <span
-                        className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-semibold ${
-                          product.tag === "Sale"
-                            ? "bg-red-500 text-white"
-                            : "bg-pink-500 text-white"
-                        }`}
-                      >
-                        {product.tag}
-                      </span>
-                    )}
-                    {/* Quick Actions */}
-                    <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-neutral-900 hover:bg-pink-500 hover:text-white transition-colors">
-                        <Heart size={18} />
-                      </button>
-                      <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-neutral-900 hover:bg-pink-500 hover:text-white transition-colors">
-                        <ShoppingCart size={18} />
-                      </button>
-                    </div>
                   </div>
 
-                  {/* Product Info */}
                   <div className="p-4">
                     <h3 className="text-white font-semibold mb-2 group-hover:text-pink-500 transition-colors">
                       {product.name}
@@ -254,11 +187,6 @@ const ShopPage = () => {
                       <span className="text-pink-500 font-bold text-lg">
                         ${product.price}
                       </span>
-                      {product.originalPrice && (
-                        <span className="text-gray-500 line-through text-sm">
-                          ${product.originalPrice}
-                        </span>
-                      )}
                     </div>
                     <button className="w-full mt-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium transition-colors">
                       Add to Cart
@@ -266,13 +194,6 @@ const ShopPage = () => {
                   </div>
                 </div>
               ))}
-            </div>
-
-            {/* Load More */}
-            <div className="text-center mt-12">
-              <button className="px-8 py-3 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg font-medium transition-colors">
-                Load More Products
-              </button>
             </div>
           </main>
         </div>
